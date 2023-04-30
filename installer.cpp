@@ -10,8 +10,6 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include <unicode/ustring.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -21,7 +19,7 @@
 
 #include <shader.h>
 
-const char *text = u8"Pony Island";
+const char *text = u8"Встановщик українізатора Pony Island";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -47,6 +45,41 @@ unsigned int VAO, VBO;
 
 CMRC_DECLARE(installer);
 auto fs = cmrc::installer::get_filesystem();
+
+uint32_t utf8_to_utf32( const char * character )
+{
+    if( !character )
+    {
+        return -1;
+    }
+
+    if( ( character[0] & 0x80 ) == 0x0 )
+    {
+        return character[0];
+    }
+
+    if( ( character[0] & 0xE0 ) == 0xC0 )
+    {
+        return ( ( character[0] & 0x3F ) << 6 ) | ( character[1] & 0x3F );
+    }
+
+    if( ( character[0] & 0xF0 ) == 0xE0 )
+    {
+        return ( ( character[0] & 0x1F ) << ( 6 + 6 ) ) | ( ( character[1] & 0x3F ) << 6 ) | ( character[2] & 0x3F );
+    }
+
+    if( ( character[0] & 0xF8 ) == 0xF0 )
+    {
+        return ( ( character[0] & 0x0F ) << ( 6 + 6 + 6 ) ) | ( ( character[1] & 0x3F ) << ( 6 + 6 ) ) | ( ( character[2] & 0x3F ) << 6 ) | ( character[3] & 0x3F );
+    }
+
+    if( ( character[0] & 0xFC ) == 0xF8 )
+    {
+        return ( ( character[0] & 0x07 ) << ( 6 + 6 + 6 + 6 ) ) | ( ( character[1] & 0x3F ) << ( 6 + 6 + 6 ) ) | ( ( character[2] & 0x3F ) << ( 6 + 6 ) ) | ( ( character[3] & 0x3F ) << 6 ) | ( character[4] & 0x3F );
+    }
+
+    return 0xFFFD; // invalid character
+}
 
 Shader InitFreeType2(){
 
@@ -91,15 +124,29 @@ Shader InitFreeType2(){
         // disable byte-alignment restriction
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        // load first 128 characters of ASCII set
-        for (int c = 0; c < sizeof(text); c++)
-        {
+        // FT_Select_Charmap(face, FT_ENCODING_UNICODE);
 
-            FT_UInt glyph_index = FT_Get_Char_Index(face, text[c]);
+        std::vector<FT_UInt> gi;
+
+        for(size_t i = 0; i <= strlen(text); i++){
+            char* s;
+            FT_UInt glyph_index = FT_Get_Char_Index(face, text[i]);
+            if(glyph_index == 0){
+                s = (char[]){text[i], text[i+1]};
+                glyph_index = utf8_to_utf32(s);
+                i++;
+            }
+            gi.push_back(glyph_index);
+        }
+
+        for (FT_UInt c : gi)
+        {
+            // std::cout << c << " ";
+
             // Load character glyph
-            if (FT_Load_Glyph(face, glyph_index, FT_LOAD_RENDER))
+            if (FT_Load_Glyph(face, c, FT_LOAD_RENDER))
             {
-                std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+                std::cout << "ERROR::FREETYTPE: Failed to load Glyph: " << c << std::endl;
                 continue;
             }
             // generate texture
@@ -149,6 +196,7 @@ Shader InitFreeType2(){
 
     return shader;
 }
+
 
 int main(int argc, char** argv)
 {

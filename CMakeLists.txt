@@ -9,9 +9,8 @@ set(CMAKE_C_COMPILER "clang")
 
 project(deadYokaiInstaller LANGUAGES CXX C)
 
-if(UNIX)
-  # Add file textension *.bin to all executables on Unix (Linux, OSX, BSD ...)
-  set(CMAKE_EXECUTABLE_SUFFIX ".bin")
+if(WIN32)
+  set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 endif()
 
 
@@ -40,11 +39,6 @@ add_executable(installer src/gl.c src/shader.cpp installer.cpp)
 
 target_include_directories(installer PRIVATE ${FREETYPE_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
 target_link_libraries(installer ${FREETYPE_LIBRARIES} ${OPENGL_gl_LIBRARY} glfw installer::rc)
-
-
-# FILE(COPY ${PROJECT_SOURCE_DIR}/e-Ukraine-Light.otf DESTINATION "${CMAKE_BINARY_DIR}")
-# FILE(COPY ${PROJECT_SOURCE_DIR}/text.vs DESTINATION "${CMAKE_BINARY_DIR}")
-# FILE(COPY ${PROJECT_SOURCE_DIR}/text.fs DESTINATION "${CMAKE_BINARY_DIR}")
 
 file(GLOB sources CONFIGURE_DEPENDS *.cpp *.h)
 target_sources(installer PUBLIC ${sources})
