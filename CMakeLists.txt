@@ -22,7 +22,7 @@ cmrc_add_resource_library(
     ALIAS installer::rc
     NAMESPACE installer
 
-    res/e-Ukraine-Light.otf
+    res/e-Ukraine-Light.ttf
     res/text.vs
     res/text.fs
     )

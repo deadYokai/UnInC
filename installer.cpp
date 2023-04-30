@@ -19,11 +19,11 @@
 
 #include <shader.h>
 
-const char *text = u8"Встановщик українізатора Pony Island";
+const wchar_t *text = L"Встановщик українізатора Pony Island";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
-void RenderText(Shader &shader, std::string text, float x, float y, float scale, glm::vec3 color);
+void RenderText(Shader &shader, wchar_t* text, float x, float y, float scale, glm::vec3 color);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -46,41 +46,6 @@ unsigned int VAO, VBO;
 CMRC_DECLARE(installer);
 auto fs = cmrc::installer::get_filesystem();
 
-uint32_t utf8_to_utf32( const char * character )
-{
-    if( !character )
-    {
-        return -1;
-    }
-
-    if( ( character[0] & 0x80 ) == 0x0 )
-    {
-        return character[0];
-    }
-
-    if( ( character[0] & 0xE0 ) == 0xC0 )
-    {
-        return ( ( character[0] & 0x3F ) << 6 ) | ( character[1] & 0x3F );
-    }
-
-    if( ( character[0] & 0xF0 ) == 0xE0 )
-    {
-        return ( ( character[0] & 0x1F ) << ( 6 + 6 ) ) | ( ( character[1] & 0x3F ) << 6 ) | ( character[2] & 0x3F );
-    }
-
-    if( ( character[0] & 0xF8 ) == 0xF0 )
-    {
-        return ( ( character[0] & 0x0F ) << ( 6 + 6 + 6 ) ) | ( ( character[1] & 0x3F ) << ( 6 + 6 ) ) | ( ( character[2] & 0x3F ) << 6 ) | ( character[3] & 0x3F );
-    }
-
-    if( ( character[0] & 0xFC ) == 0xF8 )
-    {
-        return ( ( character[0] & 0x07 ) << ( 6 + 6 + 6 + 6 ) ) | ( ( character[1] & 0x3F ) << ( 6 + 6 + 6 ) ) | ( ( character[2] & 0x3F ) << ( 6 + 6 ) ) | ( ( character[3] & 0x3F ) << 6 ) | ( character[4] & 0x3F );
-    }
-
-    return 0xFFFD; // invalid character
-}
-
 Shader InitFreeType2(){
 
     Shader shader("res/text.vs", "res/text.fs");
@@ -99,7 +64,7 @@ Shader InitFreeType2(){
     }
 
 	// find path to font
-    std::string fpath = "res/e-Ukraine-Light.otf";
+    std::string fpath = "res/e-Ukraine-Light.ttf";
     cmrc::file font_name = fs.open(fpath);
     // if (fs.exists(fpath))
     // {
@@ -118,6 +83,7 @@ Shader InitFreeType2(){
         exit(-1);
     }
     else {
+
         // set size to load glyphs as
         FT_Set_Pixel_Sizes(face, 0, 32);
 
@@ -126,27 +92,16 @@ Shader InitFreeType2(){
 
         // FT_Select_Charmap(face, FT_ENCODING_UNICODE);
 
-        std::vector<FT_UInt> gi;
-
-        for(size_t i = 0; i <= strlen(text); i++){
-            char* s;
-            FT_UInt glyph_index = FT_Get_Char_Index(face, text[i]);
-            if(glyph_index == 0){
-                s = (char[]){text[i], text[i+1]};
-                glyph_index = utf8_to_utf32(s);
-                i++;
-            }
-            gi.push_back(glyph_index);
-        }
-
-        for (FT_UInt c : gi)
+        for(size_t i = 0; i < wcslen(text); i++)
         {
             // std::cout << c << " ";
 
+            FT_UInt glyph_index = FT_Get_Char_Index(face, text[i]);
             // Load character glyph
-            if (FT_Load_Glyph(face, c, FT_LOAD_RENDER))
+            auto err = FT_Load_Glyph(face, glyph_index, FT_LOAD_RENDER);
+            if (err)
             {
-                std::cout << "ERROR::FREETYTPE: Failed to load Glyph: " << c << std::endl;
+                std::cout << "ERROR::FREETYTPE: Failed to load Glyph: " << err << std::endl;
                 continue;
             }
             // generate texture
@@ -176,7 +131,7 @@ Shader InitFreeType2(){
                 glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
                 static_cast<unsigned int>(face->glyph->advance.x)
             };
-            Characters.insert(std::pair<char, Character>(c, character));
+            Characters.insert(std::pair<char, Character>(i, character));
         }
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -232,7 +187,7 @@ int main(int argc, char** argv)
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        RenderText(shader, text, 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1));
+        RenderText(shader, (wchar_t*)text, 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1));
         // RenderText(shader, "(C) LearnOpenGL.com", 540.0f, 570.0f, 0.28f, glm::vec3(1, 1, 1));
 
 
@@ -264,7 +219,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 
 
-void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color)
+void RenderText(Shader &s, wchar_t* text, float x, float y, float scale, glm::vec3 color)
 {
     // activate corresponding render state
     s.use();
@@ -273,10 +228,11 @@ void RenderText(Shader &s, std::string text, float x, float y, float scale, glm:
     glBindVertexArray(VAO);
 
     // iterate through all characters
-    std::string::const_iterator c;
-    for (c = text.begin(); c != text.end(); c++)
+    // std::string::const_iterator c;
+    // for (c = text.begin(); c != text.end(); c++)
+    for (size_t c = 0; c < wcslen(text); c++)
     {
-        Character ch = Characters[*c];
+        Character ch = Characters[c];
 
         float xpos = x + ch.Bearing.x * scale;
         float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
