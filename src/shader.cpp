@@ -3,72 +3,31 @@
 #include <set>
 #include <algorithm>
 
-#include <res.h>
+#include <cmrc/cmrc.hpp>
 
-std::string set_to_string(std::set<int> set) {
-    std::stringstream out;
-        
-    if (!set.empty())
-    {
-        for_each(
-            set.begin(), 
-            --set.end(), 
-            [&out](const int &value) 
-            {
-                out << value;
-            }
-        );
-        
-        out << *(--set.end());
-    }
-    
-    out.flush();
-    
-    return out.str();
-}
+CMRC_DECLARE(installer);
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
 {
+
+    auto fs = cmrc::installer::get_filesystem();    
     // 1. retrieve the vertex/fragment source code from filePath
     std::string vertexCode;
     std::string fragmentCode;
     std::string geometryCode;
-    // ensure ifstream objects can throw exceptions:
-    // vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    // fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-    // gShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
     try 
     {
-
-        // auto fs = cmrc::installer::get_filesystem();
-        // open files
         auto vSh = fs.open(vertexPath);
         auto fSh = fs.open(fragmentPath);
-        auto vSh_vec = std::vector<unsigned char>(vSh.begin(), vSh.end());
-        auto fSh_vec = std::vector<unsigned char>(fSh.begin(), fSh.end());
-
-        std::stringstream vShaderStream, fShaderStream;
-        // read file's buffer contents into streams
-        // vShaderStream.read(vSh_vec.data(), vSh_vec.size());
-        // vShaderStream << vSh_vec;
-        // fShaderStream.read(fSh_vec.data(), fSh_vec.size());
-        // close file handlers
-        // vShaderFile.close();
-        // fShaderFile.close();
-        // convert stream into string
-        // vertexCode = vShaderStream.str();
-        // fragmentCode = fShaderStream.str();			
+        
+        vertexCode = std::string(vSh.begin(), vSh.end());
+        fragmentCode = std::string(fSh.begin(), fSh.end());
         // if geometry shader path is present, also load a geometry shader
         if(geometryPath != nullptr)
         {
 
             auto gSh = fs.open(geometryPath);
-            // auto gShaderFile = memstream ( const_cast<char*>(gSh.begin()),
-            //                         const_cast<char*>(gSh.end()) );
-            // std::stringstream gShaderStream;
-            // gShaderStream << gShaderFile.rdbuf();
-            // gShaderFile.close();
-            // geometryCode = gShaderStream.str();
+            geometryCode = std::string(gSh.begin(), gSh.end());
         }
     }
     catch (std::ifstream::failure& e)

@@ -23,9 +23,9 @@ cmrc_add_resource_library(
     ALIAS installer::rc
     NAMESPACE installer
 
-    e-Ukraine-Light.otf
-    text.vs
-    text.fs
+    res/e-Ukraine-Light.otf
+    res/text.vs
+    res/text.fs
     )
 
 find_package(Freetype REQUIRED)

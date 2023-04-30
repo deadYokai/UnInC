@@ -19,29 +19,6 @@
 #include <map>
 #include <memory>
 
-
-// struct membuf: std::streambuf {
-//     membuf(char const* base, size_t size) {
-//         char* p(const_cast<char*>(base));
-//         this->setg(p, p, p + size);
-//     }
-//     virtual ~membuf() = default;
-// };
-
-// struct memstream: virtual membuf, std::istream {
-
-//     memstream(char const* base, char* const end)
-//         : membuf(base, reinterpret_cast<uintptr_t>(end) - reinterpret_cast<uintptr_t>(base) )
-//         , std::istream(static_cast<std::streambuf*>(this)) { }
-
-//     memstream(char const* base, size_t size)
-//         : membuf(base, size)
-//         , std::istream(static_cast<std::streambuf*>(this)) { }
-// };
-
-
-#include <res.h>
-
 #include <shader.h>
 
 const char *text = u8"Pony Island";
@@ -66,6 +43,11 @@ std::map<GLchar, Character> Characters;
 unsigned int VAO, VBO;
 
 
+#include <cmrc/cmrc.hpp>
+
+CMRC_DECLARE(installer);
+auto fs = cmrc::installer::get_filesystem();
+
 Shader InitFreeType2(){
 
     Shader shader("res/text.vs", "res/text.fs");
@@ -84,16 +66,21 @@ Shader InitFreeType2(){
     }
 
 	// find path to font
-    std::string font_name = fs.open("res/e-Ukraine-Light.otf");
-    if (font_name.empty())
-    {
-        std::cout << "ERROR::FREETYPE: Failed to load font_name" << std::endl;
-        exit(-1);
-    }
+    std::string fpath = "res/e-Ukraine-Light.otf";
+    cmrc::file font_name = fs.open(fpath);
+    // if (fs.exists(fpath))
+    // {
+    //     std::cout << "ERROR::FREETYPE: Failed to load font_name" << std::endl;
+    //     exit(-1);
+    // }
+
+    std::string fstr = std::string(font_name.begin(), font_name.end());
+
+    FT_Byte* fbytes = const_cast<FT_Byte*>(reinterpret_cast<const FT_Byte*>(fstr.c_str()));
 
 	// load font as face
     FT_Face face;
-    if (FT_New_Face(ft, font_name.c_str(), 0, &face)) {
+    if (FT_New_Memory_Face(ft, fbytes, fstr.size(), 0, &face)) {
         std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
         exit(-1);
     }
