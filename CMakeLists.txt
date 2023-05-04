@@ -3,16 +3,20 @@ cmake_minimum_required(VERSION 3.26.3)
 set(CXX_STANDARD 11)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
-
+set(CMAKE_GENERATOR "Ninja")
 set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_C_COMPILER "clang")
 
-project(deadYokaiInstaller LANGUAGES CXX C)
+set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
 
-if(WIN32)
-  set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+if(MSVC)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
+  add_compile_options("$<$<C_COMPILER_ID:MSVC>:/source-charset>")
+  add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset>")
 endif()
 
+project(deadYokaiInstaller LANGUAGES CXX C)
 
 include("${PROJECT_SOURCE_DIR}/CMakeRC.cmake")
 
@@ -27,18 +31,26 @@ cmrc_add_resource_library(
     res/text.fs
     )
 
-find_package(Freetype REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(glm REQUIRED)
 find_package(glfw3 REQUIRED)
+find_package(Freetype REQUIRED)
 
-
+if(WIN32)
+  find_package(unofficial-brotli CONFIG REQUIRED) # From VCPKG
+  find_package(PNG REQUIRED)
+  find_package(BZip2 REQUIRED)
+  set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+  set(OTHER_PKGS PNG::PNG BZip2::BZip2 unofficial::brotli::brotlidec)
+endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 add_executable(installer src/gl.c src/shader.cpp installer.cpp)
 
 target_include_directories(installer PRIVATE ${FREETYPE_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
-target_link_libraries(installer ${FREETYPE_LIBRARIES} ${OPENGL_gl_LIBRARY} glfw installer::rc)
+
+target_link_libraries(installer ${OPENGL_gl_LIBRARY} glm::glm glfw ${OTHER_PKGS} ${FREETYPE_LIBRARIES} installer::rc)
 
 file(GLOB sources CONFIGURE_DEPENDS *.cpp *.h)
 target_sources(installer PUBLIC ${sources})
