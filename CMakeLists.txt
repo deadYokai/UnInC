@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 3.26.3)
 set(CXX_STANDARD 11)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
+
 set(CMAKE_GENERATOR "Ninja")
+
 set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_C_COMPILER "clang")
 
@@ -12,8 +14,6 @@ set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
 
 if(MSVC)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
-  add_compile_options("$<$<C_COMPILER_ID:MSVC>:/source-charset>")
-  add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset>")
 endif()
 
 project(deadYokaiInstaller LANGUAGES CXX C)
@@ -47,6 +47,10 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 add_executable(installer src/gl.c src/shader.cpp installer.cpp)
+
+if(MSVC)
+  set_property(TARGET installer APPEND_STRING PROPERTY COMPILE_FLAGS "/utf-8 /Zc:wchar_t")
+endif()
 
 target_include_directories(installer PRIVATE ${FREETYPE_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
 

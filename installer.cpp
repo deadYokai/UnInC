@@ -19,7 +19,7 @@
 
 #include <shader.h>
 
-const wchar_t *text = L"\u0412\u0441\u0442\u0430\u043D\u043E\u0432\u0449\u0438\u043A \u0443\u043A\u0440\u0430\u0457\u043D\u0456\u0437\u0430\u0442\u043E\u0440\u0430 Pony Island";
+const wchar_t *text = L"Інсталятор Pony Island";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
