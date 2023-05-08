@@ -41,7 +41,7 @@ if(WIN32)
   find_package(PNG REQUIRED)
   find_package(BZip2 REQUIRED)
   set(CMAKE_EXECUTABLE_SUFFIX ".exe")
-  set(OTHER_PKGS PNG::PNG BZip2::BZip2 unofficial::brotli::brotlidec)
+  set(OTHER_PKGS PNG::PNG BZip2::BZip2 unofficial::brotli::brotlidec glm::glm)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
@@ -54,7 +54,7 @@ endif()
 
 target_include_directories(installer PRIVATE ${FREETYPE_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
 
-target_link_libraries(installer ${OPENGL_gl_LIBRARY} glm::glm glfw ${OTHER_PKGS} ${FREETYPE_LIBRARIES} installer::rc)
+target_link_libraries(installer ${OPENGL_gl_LIBRARY} glfw ${OTHER_PKGS} ${FREETYPE_LIBRARIES} installer::rc)
 
 file(GLOB sources CONFIGURE_DEPENDS *.cpp *.h)
 target_sources(installer PUBLIC ${sources})

@@ -19,8 +19,6 @@
 
 #include <shader.h>
 
-const wchar_t *text = L"Інсталятор Pony Island";
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void RenderText(Shader &shader, wchar_t* text, float x, float y, float scale, glm::vec3 color);
@@ -37,7 +35,7 @@ struct Character {
     unsigned int Advance;   // Horizontal offset to advance to next glyph
 };
 
-std::map<GLchar, Character> Characters;
+std::map<wchar_t, Character> Characters;
 unsigned int VAO, VBO;
 
 
@@ -90,15 +88,11 @@ Shader InitFreeType2(){
         // disable byte-alignment restriction
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        // FT_Select_Charmap(face, FT_ENCODING_UNICODE);
+        FT_Select_Charmap(face, FT_ENCODING_UNICODE);
 
-        for(size_t i = 0; i < wcslen(text); i++)
+        for(int i = 0; i < 2000; i++)
         {
-            // std::cout << c << " ";
-
-            FT_UInt glyph_index = FT_Get_Char_Index(face, text[i]);
-            // Load character glyph
-            auto err = FT_Load_Glyph(face, glyph_index, FT_LOAD_RENDER);
+            auto err = FT_Load_Char(face, i, FT_LOAD_RENDER);
             if (err)
             {
                 std::cout << "ERROR::FREETYTPE: Failed to load Glyph: " << err << std::endl;
@@ -131,7 +125,7 @@ Shader InitFreeType2(){
                 glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
                 static_cast<unsigned int>(face->glyph->advance.x)
             };
-            Characters.insert(std::pair<char, Character>(i, character));
+            Characters.insert(std::pair<wchar_t, Character>(i, character));
         }
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -187,8 +181,7 @@ int main(int argc, char** argv)
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        RenderText(shader, (wchar_t*)text, 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1));
-        // RenderText(shader, "(C) LearnOpenGL.com", 540.0f, 570.0f, 0.28f, glm::vec3(1, 1, 1));
+        RenderText(shader, (wchar_t*)L"Привіт, цей чудовий світ!", 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1));
 
 
         glfwSwapBuffers(window);
@@ -227,12 +220,9 @@ void RenderText(Shader &s, wchar_t* text, float x, float y, float scale, glm::ve
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);
 
-    // iterate through all characters
-    // std::string::const_iterator c;
-    // for (c = text.begin(); c != text.end(); c++)
     for (size_t c = 0; c < wcslen(text); c++)
     {
-        Character ch = Characters[c];
+        Character ch = Characters[text[c]];
 
         float xpos = x + ch.Bearing.x * scale;
         float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
