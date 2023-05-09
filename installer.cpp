@@ -18,38 +18,37 @@
 #include <memory>
 
 #include <shader.h>
+#include <text.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
-void RenderText(Shader &shader, wchar_t* text, float x, float y, float scale, glm::vec3 color);
+void RenderText(wchar_t* text, float x, float y, float scale, glm::vec3 color);
+
+void character_callback(GLFWwindow *window, unsigned int codepoint);
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 /// Holds all state information relevant to a character as loaded using FreeType
-struct Character {
-    unsigned int TextureID; // ID handle of the glyph texture
-    glm::ivec2   Size;      // Size of glyph
-    glm::ivec2   Bearing;   // Offset from baseline to left/top of glyph
-    unsigned int Advance;   // Horizontal offset to advance to next glyph
-};
+
 
 std::map<wchar_t, Character> Characters;
-unsigned int VAO, VBO;
-
+unsigned int textVAO, textVBO;
 
 #include <cmrc/cmrc.hpp>
 
 CMRC_DECLARE(installer);
 auto fs = cmrc::installer::get_filesystem();
 
-Shader InitFreeType2(){
+Shader textShader;
+Text inpText;
 
-    Shader shader("res/text.vs", "res/text.fs");
+void InitFreeType2(){
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(SCR_WIDTH), 0.0f, static_cast<float>(SCR_HEIGHT));
-    shader.use();
-    glUniformMatrix4fv(glGetUniformLocation(shader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    textShader.use();
+    glUniformMatrix4fv(glGetUniformLocation(textShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
     // FreeType
     // --------
@@ -133,19 +132,17 @@ Shader InitFreeType2(){
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glGenVertexArrays(1, &textVAO);
+    glGenBuffers(1, &textVBO);
+    glBindVertexArray(textVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    return shader;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -165,6 +162,8 @@ int main(int argc, char** argv)
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetCharCallback(window, character_callback);
+    glfwSetKeyCallback(window, key_callback);
     // glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     gladLoadGL(glfwGetProcAddress);
 
@@ -172,17 +171,62 @@ int main(int argc, char** argv)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    Shader shader = InitFreeType2();
+    textShader.init("res/text.vs", "res/text.fs");
+
+    InitFreeType2();
+
+    Shader rectShader;
+    rectShader.init("res/rect.vs", "res/rect.fs");
+    float vertices[] = {
+        -0.5, -0.5,
+        -0.5, 0.5,
+        0.5, 0.5,
+        0.5, -0.5
+    };
+    unsigned int indices[] = {
+        0, 1, 2,
+        2, 3, 0
+    };
+
+    unsigned int rVAO, rVBO, rEBO;
+    glGenVertexArrays(1, &rVAO);
+    glGenBuffers(1, &rVBO);
+    glGenBuffers(1, &rEBO);
+
+    glBindVertexArray(rVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, rVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void *) 0);
+    glEnableVertexAttribArray(0);
+
+    Text hellotext;
+    hellotext.init(textShader, Characters, 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1), textVAO, textVBO);
+    hellotext.setText(L"Привіт, цей чудовий світ!");
+
+    inpText.init(textShader, Characters, 50.0f, 150.0f, 1.0f, glm::vec3(1, 1, 1), textVAO, textVBO);
 
     while(!glfwWindowShouldClose(window)){
 
         processInput(window);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        // glClearColor(0.06f, 0.06f, 0.06f, 1.0f);
+        glClearColor(0.16f, 0.16f, 0.16f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        RenderText(shader, (wchar_t*)L"Привіт, цей чудовий світ!", 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1));
+        rectShader.use();
+        rectShader.setVec3("rectColor", glm::vec3(1, 1, 1));
+        glBindVertexArray(rVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, rVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        hellotext.Render();
+        inpText.Render();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -199,6 +243,20 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+}
+
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods){
+    if(!glfwWindowShouldClose(window)){
+        if(key == GLFW_KEY_BACKSPACE && action == GLFW_PRESS){
+            std::wstring ws = inpText.getText();
+            
+            if(!ws.empty())
+                ws.pop_back();
+                
+            inpText.setText(ws);
+        }
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -210,47 +268,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-
-
-void RenderText(Shader &s, wchar_t* text, float x, float y, float scale, glm::vec3 color)
+void character_callback( GLFWwindow *window, unsigned int codepoint )
 {
-    // activate corresponding render state
-    s.use();
-    glUniform3f(glGetUniformLocation(s.ID, "textColor"), color.x, color.y, color.z);
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(VAO);
-
-    for (size_t c = 0; c < wcslen(text); c++)
-    {
-        Character ch = Characters[text[c]];
-
-        float xpos = x + ch.Bearing.x * scale;
-        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
-        float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale;
-        // update VBO for each character
-        float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos,     ypos,       0.0f, 1.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos + w, ypos + h,   1.0f, 0.0f }
-        };
-        // render glyph texture over quad
-        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-        // update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        // render quad
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-        x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+    if(!glfwWindowShouldClose(window)){
+        std::wstring ws = inpText.getText();
+        wchar_t b = static_cast<wchar_t>(codepoint);
+        inpText.setText(ws + b);
     }
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
-

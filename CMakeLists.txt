@@ -29,6 +29,8 @@ cmrc_add_resource_library(
     res/e-Ukraine-Light.ttf
     res/text.vs
     res/text.fs
+    res/rect.vs
+    res/rect.fs
     )
 
 find_package(OpenGL REQUIRED)
@@ -46,7 +48,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(installer src/gl.c src/shader.cpp installer.cpp)
+add_executable(installer src/gl.c src/shader.cpp src/text.cpp installer.cpp)
 
 if(MSVC)
   set_property(TARGET installer APPEND_STRING PROPERTY COMPILE_FLAGS "/utf-8 /Zc:wchar_t")
