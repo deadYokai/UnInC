@@ -48,7 +48,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable(installer src/gl.c src/shader.cpp src/text.cpp installer.cpp)
+add_executable(installer src/gl.c src/shader.cpp src/rect.cpp src/text.cpp installer.cpp)
 
 if(MSVC)
   set_property(TARGET installer APPEND_STRING PROPERTY COMPILE_FLAGS "/utf-8 /Zc:wchar_t")

@@ -18,6 +18,7 @@
 #include <memory>
 
 #include <shader.h>
+#include <rect.h>
 #include <text.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -30,9 +31,6 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
-/// Holds all state information relevant to a character as loaded using FreeType
-
 
 std::map<wchar_t, Character> Characters;
 unsigned int textVAO, textVBO;
@@ -174,56 +172,24 @@ int main(int argc, char** argv)
     textShader.init("res/text.vs", "res/text.fs");
 
     InitFreeType2();
-
-    Shader rectShader;
-    rectShader.init("res/rect.vs", "res/rect.fs");
-    float vertices[] = {
-        -0.5, -0.5,
-        -0.5, 0.5,
-        0.5, 0.5,
-        0.5, -0.5
-    };
-    unsigned int indices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
-    unsigned int rVAO, rVBO, rEBO;
-    glGenVertexArrays(1, &rVAO);
-    glGenBuffers(1, &rVBO);
-    glGenBuffers(1, &rEBO);
-
-    glBindVertexArray(rVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, rVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void *) 0);
-    glEnableVertexAttribArray(0);
-
+    
     Text hellotext;
     hellotext.init(textShader, Characters, 50.0f, 50.0f, 1.0f, glm::vec3(1, 1, 1), textVAO, textVBO);
     hellotext.setText(L"Привіт, цей чудовий світ!");
 
-    inpText.init(textShader, Characters, 50.0f, 150.0f, 1.0f, glm::vec3(1, 1, 1), textVAO, textVBO);
+    inpText.init(textShader, Characters, 55.0f, SCR_HEIGHT/2+((50+32)/2), 1.0f, glm::vec3(1, 1, 1), textVAO, textVBO);
+
+    Rect s;
+    s.init(window, 50.0f, SCR_HEIGHT/2+50.0f/2, SCR_WIDTH-100.0f, 50.0f, glm::vec3(0.3f, 0.3f, 0.3f));
 
     while(!glfwWindowShouldClose(window)){
 
         processInput(window);
 
-        // glClearColor(0.06f, 0.06f, 0.06f, 1.0f);
         glClearColor(0.16f, 0.16f, 0.16f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        rectShader.use();
-        rectShader.setVec3("rectColor", glm::vec3(1, 1, 1));
-        glBindVertexArray(rVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, rVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        s.Render();
 
         hellotext.Render();
         inpText.Render();
